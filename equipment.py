@@ -15,7 +15,6 @@ class EquipmentManager:
 
     @staticmethod
     def generate_equipment_code(equipment_type):
-        """生成器材编号"""
         type_prefix_map = {
             'basketball': 'BB',
             'volleyball': 'VB',
@@ -40,12 +39,14 @@ class EquipmentManager:
         return f"{prefix}{today}{new_seq:04d}"
 
     @staticmethod
+    def generate_code(equipment_type):
+        return EquipmentManager.generate_equipment_code(equipment_type)
+
+    @staticmethod
     def add_equipment(equipment_code, name, equipment_type, specification, quantity, unit,
                       purchase_date, supplier, purchase_price, remarks, created_by):
-        """添加器材"""
         db = get_db()
 
-        # 检查器材编号是否已存在
         check_sql = "SELECT id FROM equipment WHERE equipment_code = ?"
         if db.fetchone(check_sql, (equipment_code,)):
             return False, "器材编号已存在"
@@ -70,9 +71,14 @@ class EquipmentManager:
             return False, f"添加失败: {str(e)}"
 
     @staticmethod
+    def add(equipment_code, name, equipment_type, specification, quantity, unit,
+            purchase_date, supplier, purchase_price, remarks, created_by):
+        return EquipmentManager.add_equipment(equipment_code, name, equipment_type, specification, quantity, unit,
+                                              purchase_date, supplier, purchase_price, remarks, created_by)
+
+    @staticmethod
     def update_equipment(equipment_id, name=None, specification=None, supplier=None,
                         purchase_price=None, remarks=None, status=None):
-        """更新器材信息"""
         db = get_db()
 
         updates = []
@@ -115,17 +121,20 @@ class EquipmentManager:
             return False, f"更新失败: {str(e)}"
 
     @staticmethod
+    def update(equipment_id, name=None, specification=None, supplier=None,
+               purchase_price=None, remarks=None, status=None):
+        return EquipmentManager.update_equipment(equipment_id, name, specification, supplier,
+                                                  purchase_price, remarks, status)
+
+    @staticmethod
     def delete_equipment(equipment_id, user_id):
-        """删除器材"""
         db = get_db()
 
-        # 检查器材是否有未处理的出入库记录
         check_sql = "SELECT COUNT(*) as count FROM in_out_record WHERE equipment_id = ?"
         result = db.fetchone(check_sql, (equipment_id,))
         if result and result['count'] > 0:
             return False, "该器材存在出入库记录，无法删除"
 
-        # 检查器材库存是否为零
         equipment = EquipmentManager.get_equipment_by_id(equipment_id)
         if equipment and equipment['quantity'] > 0:
             return False, "该器材库存不为零，无法删除"
@@ -141,16 +150,22 @@ class EquipmentManager:
             return False, f"删除失败: {str(e)}"
 
     @staticmethod
+    def delete(equipment_id, user_id):
+        return EquipmentManager.delete_equipment(equipment_id, user_id)
+
+    @staticmethod
     def get_equipment_by_id(equipment_id):
-        """根据ID获取器材信息"""
         db = get_db()
         sql = "SELECT * FROM equipment WHERE id = ?"
         result = db.fetchone(sql, (equipment_id,))
         return dict(result) if result else None
 
     @staticmethod
+    def get_by_id(equipment_id):
+        return EquipmentManager.get_equipment_by_id(equipment_id)
+
+    @staticmethod
     def get_equipment_by_code(equipment_code):
-        """根据编号获取器材信息"""
         db = get_db()
         sql = "SELECT * FROM equipment WHERE equipment_code = ?"
         result = db.fetchone(sql, (equipment_code,))
@@ -158,7 +173,6 @@ class EquipmentManager:
 
     @staticmethod
     def get_all_equipments(page=1, page_size=20, equipment_type=None, keyword='', status=1):
-        """获取器材列表"""
         db = get_db()
         offset = (page - 1) * page_size
 
@@ -194,6 +208,10 @@ class EquipmentManager:
         total = total_result['total'] if total_result else 0
 
         return [dict(eq) for eq in equipments], total
+
+    @staticmethod
+    def get_all(page=1, page_size=20, equipment_type=None, keyword='', status=1):
+        return EquipmentManager.get_all_equipments(page, page_size, equipment_type, keyword, status)
 
     @staticmethod
     def get_equipment_statistics():

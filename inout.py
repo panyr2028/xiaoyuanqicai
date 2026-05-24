@@ -12,18 +12,18 @@ from equipment import EquipmentManager
 
 
 class InOutManager:
-    """出入库管理类"""
-
     @staticmethod
     def generate_record_no():
-        """生成记录编号"""
         today = datetime.now().strftime('%Y%m%d')
         timestamp = datetime.now().strftime('%H%M%S')
         return f"IO{today}{timestamp}"
 
     @staticmethod
+    def generate_no():
+        return InOutManager.generate_record_no()
+
+    @staticmethod
     def stock_in(equipment_id, quantity, purpose, remarks, operator_id, operator_name):
-        """器材入库"""
         db = get_db()
 
         equipment = EquipmentManager.get_equipment_by_id(equipment_id)
@@ -36,10 +36,8 @@ class InOutManager:
         before_quantity = equipment['quantity']
         after_quantity = before_quantity + quantity
 
-        # 生成记录编号
         record_no = InOutManager.generate_record_no()
 
-        # 插入入库记录
         insert_sql = """
         INSERT INTO in_out_record (
             record_no, equipment_id, equipment_code, equipment_name, equipment_type,
@@ -57,7 +55,6 @@ class InOutManager:
                     operator_id, operator_name, purpose, remarks
                 ))
 
-                # 更新器材库存
                 update_sql = "UPDATE equipment SET quantity = ?, updated_at = ? WHERE id = ?"
                 cursor.execute(update_sql, (after_quantity, datetime.now(), equipment_id))
 
@@ -73,7 +70,6 @@ class InOutManager:
 
     @staticmethod
     def stock_out(equipment_id, quantity, purpose, remarks, operator_id, operator_name):
-        """器材出库"""
         db = get_db()
 
         equipment = EquipmentManager.get_equipment_by_id(equipment_id)
@@ -90,10 +86,8 @@ class InOutManager:
 
         after_quantity = before_quantity - quantity
 
-        # 生成记录编号
         record_no = InOutManager.generate_record_no()
 
-        # 插入出库记录
         insert_sql = """
         INSERT INTO in_out_record (
             record_no, equipment_id, equipment_code, equipment_name, equipment_type,
@@ -111,7 +105,6 @@ class InOutManager:
                     operator_id, operator_name, purpose, remarks
                 ))
 
-                # 更新器材库存
                 update_sql = "UPDATE equipment SET quantity = ?, updated_at = ? WHERE id = ?"
                 cursor.execute(update_sql, (after_quantity, datetime.now(), equipment_id))
 
@@ -128,7 +121,6 @@ class InOutManager:
     @staticmethod
     def get_records(page=1, page_size=20, equipment_type=None, record_type=None,
                     start_date=None, end_date=None, keyword=''):
-        """获取出入库记录"""
         db = get_db()
         offset = (page - 1) * page_size
 
@@ -179,15 +171,17 @@ class InOutManager:
 
     @staticmethod
     def get_record_by_id(record_id):
-        """根据ID获取记录"""
         db = get_db()
         sql = "SELECT * FROM in_out_record WHERE id = ?"
         result = db.fetchone(sql, (record_id,))
         return dict(result) if result else None
 
     @staticmethod
+    def get_by_id(record_id):
+        return InOutManager.get_record_by_id(record_id)
+
+    @staticmethod
     def get_record_statistics(start_date=None, end_date=None, equipment_type=None):
-        """获取出入库统计"""
         db = get_db()
 
         sql = """
@@ -237,15 +231,17 @@ class InOutManager:
 
     @staticmethod
     def get_recent_records(limit=10):
-        """获取最近的出入库记录"""
         db = get_db()
         sql = "SELECT * FROM in_out_record ORDER BY operate_time DESC LIMIT ?"
         results = db.fetchall(sql, (limit,))
         return [dict(record) for record in results]
 
     @staticmethod
+    def get_recent(limit=10):
+        return InOutManager.get_recent_records(limit)
+
+    @staticmethod
     def cancel_record(record_id, operator_id, operator_name, reason):
-        """撤销出入库记录"""
         db = get_db()
 
         record = InOutManager.get_record_by_id(record_id)
@@ -261,14 +257,12 @@ class InOutManager:
 
         try:
             with db.get_cursor() as cursor:
-                # 恢复器材库存
                 equipment = EquipmentManager.get_equipment_by_id(record['equipment_id'])
                 new_quantity = equipment['quantity'] + quantity_change
 
                 update_sql = "UPDATE equipment SET quantity = ?, updated_at = ? WHERE id = ?"
                 cursor.execute(update_sql, (new_quantity, datetime.now(), record['equipment_id']))
 
-                # 删除记录
                 delete_sql = "DELETE FROM in_out_record WHERE id = ?"
                 cursor.execute(delete_sql, (record_id,))
 
@@ -281,3 +275,7 @@ class InOutManager:
         except Exception as e:
             log_error(f"撤销记录失败: {e}")
             return False, f"撤销失败: {str(e)}"
+
+    @staticmethod
+    def cancel(record_id, operator_id, operator_name, reason):
+        return InOutManager.cancel_record(record_id, operator_id, operator_name, reason)

@@ -150,15 +150,17 @@ class UserManager:
 
     @staticmethod
     def get_user_by_id(user_id):
-        """根据ID获取用户信息"""
         db = get_db()
         sql = "SELECT * FROM users WHERE id = ?"
         user = db.fetchone(sql, (user_id,))
         return dict(user) if user else None
 
     @staticmethod
+    def get_by_id(user_id):
+        return UserManager.get_user_by_id(user_id)
+
+    @staticmethod
     def get_user_by_username(username):
-        """根据用户名获取用户信息"""
         db = get_db()
         sql = "SELECT * FROM users WHERE username = ?"
         user = db.fetchone(sql, (username,))
@@ -166,7 +168,6 @@ class UserManager:
 
     @staticmethod
     def get_all_users(page=1, page_size=20, role=None, keyword=''):
-        """获取所有用户列表"""
         db = get_db()
         offset = (page - 1) * page_size
 
@@ -196,6 +197,10 @@ class UserManager:
         total = total_result['total'] if total_result else 0
 
         return [dict(user) for user in users], total
+
+    @staticmethod
+    def get_all(page=1, page_size=20, role=None, keyword=''):
+        return UserManager.get_all_users(page, page_size, role, keyword)
 
     @staticmethod
     def update_user(user_id, real_name=None, email=None, phone=None, role=None, status=None):

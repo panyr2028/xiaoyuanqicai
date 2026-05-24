@@ -12,11 +12,8 @@ from equipment import EquipmentManager
 
 
 class InventoryManager:
-    """库存管理类"""
-
     @staticmethod
     def get_inventory_summary():
-        """获取库存汇总信息"""
         db = get_db()
 
         sql = """
@@ -38,7 +35,6 @@ class InventoryManager:
                 'total_quantity': result['total_quantity']
             }
 
-        # 计算总计
         total_sql = "SELECT SUM(quantity) as total FROM equipment WHERE status = 1"
         total_result = db.fetchone(total_sql)
         summary['total'] = total_result['total'] if total_result and total_result['total'] else 0
@@ -46,8 +42,11 @@ class InventoryManager:
         return summary
 
     @staticmethod
+    def get_summary():
+        return InventoryManager.get_inventory_summary()
+
+    @staticmethod
     def inventory_check(equipment_id, actual_quantity, check_type, checker_id, checker_name, remarks=''):
-        """库存盘点"""
         db = get_db()
 
         equipment = EquipmentManager.get_equipment_by_id(equipment_id)
@@ -57,7 +56,6 @@ class InventoryManager:
         system_quantity = equipment['quantity']
         difference = actual_quantity - system_quantity
 
-        # 生成盘点编号
         today = datetime.now().strftime('%Y%m%d')
         timestamp = datetime.now().strftime('%H%M%S')
         check_no = f"IC{today}{timestamp}"
@@ -78,7 +76,6 @@ class InventoryManager:
                     check_type, checker_id, checker_name, remarks
                 ))
 
-                # 如果有差异，更新系统库存
                 if difference != 0:
                     update_sql = "UPDATE equipment SET quantity = ?, updated_at = ? WHERE id = ?"
                     cursor.execute(update_sql, (actual_quantity, datetime.now(), equipment_id))
@@ -94,8 +91,11 @@ class InventoryManager:
             return False, f"盘点失败: {str(e)}"
 
     @staticmethod
+    def check(equipment_id, actual_quantity, check_type, checker_id, checker_name, remarks=''):
+        return InventoryManager.inventory_check(equipment_id, actual_quantity, check_type, checker_id, checker_name, remarks)
+
+    @staticmethod
     def get_check_records(page=1, page_size=20, equipment_type=None, start_date=None, end_date=None):
-        """获取盘点记录"""
         db = get_db()
         offset = (page - 1) * page_size
 
@@ -141,7 +141,6 @@ class InventoryManager:
 
     @staticmethod
     def inventory_adjustment(equipment_id, new_quantity, reason, operator_id, operator_name):
-        """库存调整"""
         db = get_db()
 
         equipment = EquipmentManager.get_equipment_by_id(equipment_id)
@@ -153,16 +152,13 @@ class InventoryManager:
 
         try:
             with db.get_cursor() as cursor:
-                # 更新器材库存
                 update_sql = "UPDATE equipment SET quantity = ?, updated_at = ? WHERE id = ?"
                 cursor.execute(update_sql, (new_quantity, datetime.now(), equipment_id))
 
-                # 生成记录编号
                 today = datetime.now().strftime('%Y%m%d')
                 timestamp = datetime.now().strftime('%H%M%S')
                 record_no = f"IA{today}{timestamp}"
 
-                # 记录调整
                 record_sql = """
                 INSERT INTO in_out_record (
                     record_no, equipment_id, equipment_code, equipment_name, equipment_type,
@@ -188,8 +184,11 @@ class InventoryManager:
             return False, f"调整失败: {str(e)}"
 
     @staticmethod
+    def adjust(equipment_id, new_quantity, reason, operator_id, operator_name):
+        return InventoryManager.inventory_adjustment(equipment_id, new_quantity, reason, operator_id, operator_name)
+
+    @staticmethod
     def get_inventory_details(equipment_type=None):
-        """获取库存明细"""
         db = get_db()
 
         sql = """
@@ -210,3 +209,7 @@ class InventoryManager:
 
         results = db.fetchall(sql, params)
         return [dict(r) for r in results]
+
+    @staticmethod
+    def get_details(equipment_type=None):
+        return InventoryManager.get_inventory_details(equipment_type)
