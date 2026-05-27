@@ -292,7 +292,6 @@ def create_default_admin(db):
 
 
 def backup_database():
-    """备份数据库"""
     if config.USE_SQLITE:
         import shutil
         from datetime import datetime
@@ -321,8 +320,52 @@ def backup_database():
         return None
 
 
+def restore_database(backup_path):
+    if config.USE_SQLITE:
+        import shutil
+
+        db_path = os.path.join(config.BASE_DIR, config.SQLITE_DB_PATH)
+
+        if not os.path.exists(backup_path):
+            logger.error(f"备份文件不存在: {backup_path}")
+            return False, "备份文件不存在"
+
+        try:
+            shutil.copy2(backup_path, db_path)
+            logger.info(f"数据库恢复成功: {backup_path}")
+            return True, "恢复成功"
+        except Exception as e:
+            logger.error(f"数据库恢复失败: {e}")
+            return False, f"恢复失败: {str(e)}"
+    else:
+        logger.warning("MySQL恢复需要使用mysql命令")
+        return False, "MySQL恢复需要使用mysql命令"
+
+
+def get_backup_files():
+    backup_dir = config.BACKUP_DIR
+    backup_files = []
+    
+    if not os.path.exists(backup_dir):
+        return []
+
+    for f in os.listdir(backup_dir):
+        if f.endswith('.db') and f.startswith('sports_equipment_backup_'):
+            full_path = os.path.join(backup_dir, f)
+            create_time = os.path.getctime(full_path)
+            create_datetime = datetime.fromtimestamp(create_time)
+            backup_files.append({
+                'filename': f,
+                'path': full_path,
+                'size': os.path.getsize(full_path),
+                'create_time': create_datetime
+            })
+
+    backup_files.sort(key=lambda x: x['create_time'], reverse=True)
+    return backup_files
+
+
 def cleanup_old_backups():
-    """清理旧备份文件"""
     backup_dir = config.BACKUP_DIR
     max_count = config.BACKUP_CONFIG['max_backup_count']
 

@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-校园体育器材出入库管理系统
-用户认证和权限管理模块
-"""
 
 import hashlib
 from datetime import datetime
@@ -12,21 +8,16 @@ from logger import log_operation, log_info, log_error
 
 
 class UserAuth:
-    """用户认证类"""
-
     @staticmethod
     def hash_password(password):
-        """密码哈希"""
         return hashlib.sha256(password.encode()).hexdigest()
 
     @staticmethod
     def verify_password(password, password_hash):
-        """验证密码"""
         return UserAuth.hash_password(password) == password_hash
 
     @staticmethod
     def login(username, password):
-        """用户登录"""
         db = get_db()
         sql = "SELECT * FROM users WHERE username = ? AND status = 1"
         user = db.fetchone(sql, (username,))
@@ -38,34 +29,27 @@ class UserAuth:
             log_error(f"用户 {username} 登录失败：密码错误")
             return None, "密码错误"
 
-        # 更新最后登录时间
         update_sql = "UPDATE users SET last_login = ? WHERE id = ?"
         db.execute(update_sql, (datetime.now(), user['id']))
 
         log_info(f"用户 {username} 登录成功")
-
-        # 记录登录日志
         log_operation(user['id'], username, 'login', 'auth', f'用户 {username} 登录系统')
 
         return dict(user), "登录成功"
 
     @staticmethod
     def logout(user_id, username):
-        """用户登出"""
         log_operation(user_id, username, 'logout', 'auth', f'用户 {username} 退出系统')
         return True, "登出成功"
 
     @staticmethod
     def register(username, password, real_name, role='operator', email='', phone=''):
-        """用户注册"""
         db = get_db()
 
-        # 检查用户名是否已存在
         check_sql = "SELECT id FROM users WHERE username = ?"
         if db.fetchone(check_sql, (username,)):
             return False, "用户名已存在"
 
-        # 创建新用户
         password_hash = UserAuth.hash_password(password)
         insert_sql = """
         INSERT INTO users (username, password, real_name, role, email, phone)
@@ -81,10 +65,8 @@ class UserAuth:
 
     @staticmethod
     def change_password(user_id, old_password, new_password):
-        """修改密码"""
         db = get_db()
 
-        # 验证旧密码
         sql = "SELECT password FROM users WHERE id = ?"
         user = db.fetchone(sql, (user_id,))
         if not user:
@@ -94,7 +76,6 @@ class UserAuth:
             log_error(f"用户ID {user_id} 修改密码失败：旧密码错误")
             return False, "旧密码错误"
 
-        # 更新新密码
         new_password_hash = UserAuth.hash_password(new_password)
         update_sql = "UPDATE users SET password = ?, updated_at = ? WHERE id = ?"
         db.execute(update_sql, (new_password_hash, datetime.now(), user_id))
@@ -106,7 +87,6 @@ class UserAuth:
 
     @staticmethod
     def reset_password(user_id, new_password, admin_id=None):
-        """管理员重置用户密码"""
         db = get_db()
 
         new_password_hash = UserAuth.hash_password(new_password)
@@ -121,8 +101,6 @@ class UserAuth:
 
 
 class Permission:
-    """权限管理类"""
-
     PERMISSIONS = {
         'admin': ['all'],
         'operator': [
@@ -133,7 +111,6 @@ class Permission:
 
     @staticmethod
     def check_permission(role, permission):
-        """检查权限"""
         if role not in Permission.PERMISSIONS:
             return False
         perms = Permission.PERMISSIONS[role]
@@ -141,13 +118,10 @@ class Permission:
 
     @staticmethod
     def get_permissions(role):
-        """获取用户角色权限列表"""
         return Permission.PERMISSIONS.get(role, [])
 
 
 class UserManager:
-    """用户管理类"""
-
     @staticmethod
     def get_user_by_id(user_id):
         db = get_db()
@@ -204,7 +178,6 @@ class UserManager:
 
     @staticmethod
     def update_user(user_id, real_name=None, email=None, phone=None, role=None, status=None):
-        """更新用户信息"""
         db = get_db()
 
         updates = []
@@ -245,14 +218,11 @@ class UserManager:
 
     @staticmethod
     def delete_user(user_id, current_user_id=None):
-        """删除用户"""
         db = get_db()
 
-        # 不能删除自己
         if current_user_id and current_user_id == user_id:
             return False, "不能删除当前登录用户"
 
-        # 不能删除管理员
         user = UserManager.get_user_by_id(user_id)
         if user and user['role'] == 'admin':
             return False, "不能删除管理员账户"

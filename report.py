@@ -406,7 +406,6 @@ class ReportManager:
 
     @staticmethod
     def export_to_csv(data, filename, headers):
-        """导出数据到CSV"""
         export_dir = os.path.join(config.BASE_DIR, config.EXPORT_CONFIG['export_dir'])
         if not os.path.exists(export_dir):
             os.makedirs(export_dir)
@@ -432,7 +431,6 @@ class ReportManager:
 
     @staticmethod
     def export_equipment_report(equipment_type=None, keyword='', start_date=None, end_date=None):
-        """导出器材报表"""
         data = ReportManager.query_equipment(equipment_type, keyword, start_date, end_date)
 
         headers = ['器材编号', '名称', '类型', '规格', '数量', '单位', '采购日期', '供应商', '采购价格', '状态']
@@ -443,7 +441,6 @@ class ReportManager:
     @staticmethod
     def export_record_report(record_type=None, equipment_type=None, keyword='',
                              start_date=None, end_date=None):
-        """导出入入库记录报表"""
         data = ReportManager.query_records(record_type, equipment_type, keyword, start_date, end_date)
 
         headers = ['记录编号', '器材编号', '器材名称', '器材类型', '操作类型', '数量', '操作前库存',
@@ -454,8 +451,9 @@ class ReportManager:
 
     @staticmethod
     def get_statistics_by_date(start_date, end_date):
-        """按日期统计"""
         db = get_db()
+
+        end_datetime = f"{end_date} 23:59:59"
 
         sql = """
         SELECT DATE(operate_time) as date, record_type,
@@ -466,7 +464,7 @@ class ReportManager:
         ORDER BY date
         """
 
-        results = db.fetchall(sql, (start_date, end_date))
+        results = db.fetchall(sql, (start_date, end_datetime))
 
         statistics = {}
         for r in results:

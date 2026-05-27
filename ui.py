@@ -345,6 +345,10 @@ class MainWindow(QMainWindow):
             backup_action.triggered.connect(self.do_backup)
             system_menu.addAction(backup_action)
 
+            restore_action = QAction("恢复数据", self)
+            restore_action.triggered.connect(self.show_restore_dialog)
+            system_menu.addAction(restore_action)
+
             system_menu.addSeparator()
 
         change_password_action = QAction("修改密码", self)
@@ -1247,6 +1251,39 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "失败", "备份失败")
         except Exception as e:
             QMessageBox.warning(self, "错误", f"备份失败: {str(e)}")
+
+    def show_restore_dialog(self):
+        from PyQt5.QtWidgets import QFileDialog
+        import os
+
+        try:
+            backup_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "选择备份文件",
+                config.BACKUP_DIR,
+                "数据库备份文件 (*.db)"
+            )
+
+            if not backup_path:
+                return
+
+            backup_filename = os.path.basename(backup_path)
+
+            confirm = QMessageBox.question(self, "确认恢复",
+                                        f"确定要从备份文件恢复数据吗？\n\n备份文件: {backup_filename}\n\n注意：恢复后当前数据将被覆盖！",
+                                        QMessageBox.Ok | QMessageBox.Cancel)
+
+            if confirm == QMessageBox.Ok:
+                from database import restore_database
+                success, msg = restore_database(backup_path)
+
+                if success:
+                    QMessageBox.information(self, "成功", "数据恢复成功！\n\n请重新启动程序以应用更改。")
+                else:
+                    QMessageBox.warning(self, "失败", msg)
+
+        except Exception as e:
+            QMessageBox.warning(self, "错误", f"恢复数据失败: {str(e)}")
 
     def show_specification_detail(self, equipment_type, type_name, detail_type):
         details = EquipmentManager.get_specification_details_by_type(equipment_type, detail_type)

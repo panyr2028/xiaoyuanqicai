@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-校园体育器材出入库管理系统
-器材信息管理模块
-"""
 
 from datetime import datetime
 import config
@@ -11,8 +7,6 @@ from logger import log_info, log_error, log_operation
 
 
 class EquipmentManager:
-    """器材信息管理类"""
-
     @staticmethod
     def generate_equipment_code(equipment_type):
         type_prefix_map = {
@@ -215,11 +209,9 @@ class EquipmentManager:
 
     @staticmethod
     def get_equipment_statistics():
-        """获取器材统计信息"""
         db = get_db()
         statistics = {}
 
-        # 按类型统计
         type_sql = """
         SELECT type, COUNT(*) as count, SUM(quantity) as total_quantity
         FROM equipment WHERE status = 1 GROUP BY type
@@ -232,7 +224,6 @@ class EquipmentManager:
                 'total_quantity': result['total_quantity']
             }
 
-        # 总数统计
         total_sql = "SELECT COUNT(*) as total_count, SUM(quantity) as total FROM equipment WHERE status = 1"
         total_result = db.fetchone(total_sql)
         statistics['total'] = {
@@ -244,7 +235,6 @@ class EquipmentManager:
 
     @staticmethod
     def update_quantity(equipment_id, quantity_change, operator_id, operator_name):
-        """更新器材库存数量"""
         db = get_db()
 
         equipment = EquipmentManager.get_equipment_by_id(equipment_id)
@@ -264,7 +254,6 @@ class EquipmentManager:
 
     @staticmethod
     def get_specification_details_by_type(equipment_type, detail_type='stock'):
-        """根据器材类型获取不同规格的详细信息"""
         db = get_db()
         
         if detail_type == 'asset':
@@ -288,5 +277,3 @@ class EquipmentManager:
             """
             results = db.fetchall(sql, (equipment_type,))
             return [dict(row) for row in results]
-    
-
